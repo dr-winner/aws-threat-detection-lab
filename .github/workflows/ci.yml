@@ -1,0 +1,60 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.x"
+
+      - name: terraform fmt
+        run: terraform fmt -check -recursive
+
+      - name: terraform validate
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+  checkov:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: checkov (IaC security scan)
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          framework: terraform
+          quiet: true
+          # Documented, deliberate lab trade-offs (see README "Design choices"):
+          # SSE-S3 instead of CMK, no access logging on the log bucket itself,
+          # no cross-region replication, no X-Ray tracing on a 15s Lambda.
+          skip_check: CKV_AWS_144,CKV_AWS_145,CKV_AWS_18,CKV2_AWS_62,CKV_AWS_35,CKV_AWS_50,CKV_AWS_116,CKV_AWS_272,CKV_AWS_26
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: ruff (lint)
+        run: |
+          pip install ruff
+          ruff check lambda/
+
+      - name: syntax check
+        run: python -m compileall lambda/
