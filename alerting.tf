@@ -28,6 +28,10 @@ resource "aws_lambda_function" "alerter" {
   filename         = data.archive_file.alerter.output_path
   source_code_hash = data.archive_file.alerter.output_base64sha256
 
+  # Bound the blast radius: an alert storm can't starve the account's
+  # concurrency pool or run up Lambda spend.
+  reserved_concurrent_executions = 10
+
   environment {
     variables = {
       SNS_TOPIC_ARN     = aws_sns_topic.alerts.arn

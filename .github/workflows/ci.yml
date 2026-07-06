@@ -38,9 +38,14 @@ jobs:
           framework: terraform
           quiet: true
           # Documented, deliberate lab trade-offs (see README "Design choices"):
-          # SSE-S3 instead of CMK, no access logging on the log bucket itself,
-          # no cross-region replication, no X-Ray tracing on a 15s Lambda.
-          skip_check: CKV_AWS_144,CKV_AWS_145,CKV_AWS_18,CKV2_AWS_62,CKV_AWS_35,CKV_AWS_50,CKV_AWS_116,CKV_AWS_272,CKV_AWS_26
+          # - S3/CloudTrail: SSE-S3 instead of CMK (144,145,35), no access logging
+          #   on the log bucket itself (18), no event notifications (2_62), no SNS
+          #   delivery topic or CloudWatch Logs mirror on the trail — cost (252,2_10)
+          # - Lambda: no VPC (117 — nothing private to reach), no DLQ (116), no
+          #   X-Ray (50), no code signing (272), default env encryption (173)
+          # - Logs: 30-day retention, AWS-managed encryption (338,158)
+          # - GuardDuty: single-account lab, no org delegated admin (2_3)
+          skip_check: CKV_AWS_144,CKV_AWS_145,CKV_AWS_35,CKV_AWS_18,CKV2_AWS_62,CKV_AWS_252,CKV2_AWS_10,CKV_AWS_117,CKV_AWS_116,CKV_AWS_50,CKV_AWS_272,CKV_AWS_173,CKV_AWS_338,CKV_AWS_158,CKV2_AWS_3,CKV_AWS_26
 
   python:
     runs-on: ubuntu-latest
